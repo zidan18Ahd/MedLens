@@ -1,4 +1,4 @@
-# 🩺 MedLens: Streamlit-Based Medical RAG System
+#  MedLens: Streamlit-Based Medical RAG System
 Advanced Knowledge-Graph Enhanced Retrieval-Augmented Generation System for Clinical Documents
 
 MedLens is an intelligent **Medical QA and RAG (Retrieval-Augmented Generation)** system designed to process clinical PDFs, extract key medical entities, and answer healthcare-related questions through semantic similarity and graph-based reasoning.
@@ -13,29 +13,29 @@ It allows medical professionals, researchers, and students to upload medical doc
 
 ## ⚙️ Key Features
 
-### 🧩 Entity Extraction
+###  Entity Extraction
 - **Rule-based medical entity recognition** for medications, dosages, conditions, and frequency patterns.
 - Extracts entities using domain-aware regex patterns.
 
-### 🧠 Semantic Retrieval
+###  Semantic Retrieval
 - Utilizes **SentenceTransformers (`all-MiniLM-L6-v2`)** for sentence-level embeddings.
 - Performs **vector similarity search** across chunked medical texts.
 
-### 🌐 Knowledge Graph Integration
+###  Knowledge Graph Integration
 - Builds a **NetworkX-powered graph** connecting related entities by contextual co-occurrence.
 - Enables **relationship-aware retrieval** for enriched answers.
 
-### 💬 Intelligent Question Answering
+###  Intelligent Question Answering
 - Combines semantic similarity with entity relationships for context-aware responses.
 - Returns related chunks, entity types, and graph connections.
 
-### 🎛️ Streamlit Interface
+###  Streamlit Interface
 - Interactive single-page app for document upload, question input, and live result visualization.
 - No backend/frontend separation — everything runs in one Python environment.
 
 ---
 
-## 🧬 Architecture Overview
+##  Architecture Overview
 
 | Component | Description |
 |------------|-------------|
@@ -46,7 +46,7 @@ It allows medical professionals, researchers, and students to upload medical doc
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### **1️⃣ Prerequisites**
 - Python 3.8+
@@ -60,22 +60,3 @@ Clone the repository:
 ```bash
 git clone https://github.com/zidan18Ahd/MedLens.git
 cd MedLens/backend
-python -m venv medrag_env
-medrag_env\Scripts\activate
-pip install -r requirements.txt
-streamlit run streamlit_app.py
-MedLens/
-│
-├── backend/
-│   ├── streamlit_app.py              # Main Streamlit interface
-│   ├── medical_rag_light.py          # Core RAG logic
-│   ├── main_light.py                 # Lightweight runner
-│   ├── requirements.txt              # Dependencies
-│   └── run_streamlit.bat             # Local run script
-│
-├── frontend/
-│   ├── index.html                    # Optional landing page
-│   ├── css/style.css
-│   └── js/app.js
-│
-└── README.md                         # Project documentation
