@@ -1,0 +1,9 @@
+# Ignore Python virtual environments
+medrag_env/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+temp.pdf
+.streamlit/
