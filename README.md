@@ -60,3 +60,22 @@ Clone the repository:
 ```bash
 git clone https://github.com/zidan18Ahd/MedLens.git
 cd MedLens/backend
+python -m venv medrag_env
+medrag_env\Scripts\activate
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+MedLens/
+│
+├── backend/
+│   ├── streamlit_app.py              # Main Streamlit interface
+│   ├── medical_rag_light.py          # Core RAG logic
+│   ├── main_light.py                 # Lightweight runner
+│   ├── requirements.txt              # Dependencies
+│   └── run_streamlit.bat             # Local run script
+│
+├── frontend/
+│   ├── index.html                    # Optional landing page
+│   ├── css/style.css
+│   └── js/app.js
+│
+└── README.md                         # Project documentation
