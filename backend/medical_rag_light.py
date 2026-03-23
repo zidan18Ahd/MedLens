@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from typing import List, Dict, Any
 import aiofiles
-import fitz  # PyMuPDF
+from pypdf import PdfReader   # ✅ replaced PyMuPDF
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import networkx as nx
@@ -27,10 +27,8 @@ class MedicalLightRAG:
         os.makedirs(working_dir, exist_ok=True)
     
     def extract_medical_entities(self, text: str) -> List[MedicalEntity]:
-        """Simple rule-based medical entity extraction"""
         entities = []
         
-        # Medical patterns
         patterns = {
             'MEDICATION': [
                 r'\b(?:lisinopril|metformin|atorvastatin|amlodipine|metoprolol|omeprazole|simvastatin|losartan|albuterol|aspirin|ibuprofen|paracetamol|amoxicillin|vitamin)\b',
@@ -55,7 +53,6 @@ class MedicalLightRAG:
             for pattern in pattern_list:
                 matches = re.finditer(pattern, text, re.IGNORECASE)
                 for match in matches:
-                    # Get context around the match
                     start = max(0, match.start() - 50)
                     end = min(len(text), match.end() + 50)
                     context = text[start:end]
@@ -70,19 +67,19 @@ class MedicalLightRAG:
         return entities
     
     async def process_pdf(self, file_path: str) -> str:
-        """Extract text from PDF using PyMuPDF"""
+        """Cloud-safe PDF reading using pypdf"""
         try:
-            doc = fitz.open(file_path)
+            reader = PdfReader(file_path)
             text = ""
-            for page in doc:
-                text += page.get_text()
-            doc.close()
+            for page in reader.pages:
+                extracted = page.extract_text()
+                if extracted:
+                    text += extracted
             return text
         except Exception as e:
             return f"Error: {str(e)}"
     
     async def chunk_text(self, text: str, chunk_size: int = 400) -> List[str]:
-        """Split text into chunks for processing"""
         words = text.split()
         chunks = []
         current_chunk = []
@@ -90,7 +87,7 @@ class MedicalLightRAG:
         
         for word in words:
             current_chunk.append(word)
-            current_size += len(word) + 1  # +1 for space
+            current_size += len(word) + 1
             
             if current_size >= chunk_size:
                 chunks.append(" ".join(current_chunk))
@@ -103,33 +100,23 @@ class MedicalLightRAG:
         return chunks
     
     async def add_document(self, file_path: str, doc_id: str) -> Dict[str, Any]:
-        """Process and add PDF document to the system"""
-        print(f"Processing PDF: {file_path}")
-        
-        # Extract text from PDF
         text = await self.process_pdf(file_path)
         if text.startswith("Error:"):
             return {"error": text}
         
-        # Chunk the text
         chunks = await self.chunk_text(text)
-        
-        # Extract entities
         entities = self.extract_medical_entities(text)
         
-        # Create embeddings for chunks
         for chunk in chunks:
             self.chunks.append(chunk)
             embedding = self.model.encode(chunk)
             self.embeddings.append(embedding)
         
-        # Build knowledge graph
         for entity in entities:
             self.knowledge_graph.add_node(entity.name, type=entity.type)
         
-        # Add some basic relationships based on co-occurrence
         for i, entity1 in enumerate(entities):
-            for entity2 in entities[i+1:i+3]:  # Look at next 2 entities
+            for entity2 in entities[i+1:i+3]:
                 if entity1.name != entity2.name:
                     self.knowledge_graph.add_edge(entity1.name, entity2.name)
         
@@ -141,7 +128,6 @@ class MedicalLightRAG:
         }
     
     def search_similar(self, query: str, top_k: int = 5) -> List[str]:
-        """Find similar chunks using vector search"""
         if not self.embeddings:
             return []
         
@@ -154,38 +140,29 @@ class MedicalLightRAG:
             )
             similarities.append((i, similarity))
         
-        # Sort by similarity and return top chunks
         similarities.sort(key=lambda x: x[1], reverse=True)
         return [self.chunks[idx] for idx, _ in similarities[:top_k]]
     
     def get_related_entities(self, query: str) -> List[Dict[str, str]]:
-        """Get entities related to the query"""
         related = []
         query_lower = query.lower()
         
         for node in self.knowledge_graph.nodes():
             if query_lower in node.lower():
-                # Get neighbors of this node
                 neighbors = list(self.knowledge_graph.neighbors(node))
                 related.append({
                     "entity": node,
                     "type": self.knowledge_graph.nodes[node].get('type', 'UNKNOWN'),
-                    "neighbors": neighbors[:3]  # Top 3 neighbors
+                    "neighbors": neighbors[:3]
                 })
         
         return related
     
     async def query(self, question: str, top_k: int = 5) -> Dict[str, Any]:
-        """Main query function"""
-        # Vector search for similar content
         similar_chunks = self.search_similar(question, top_k)
-        
-        # Entity search
         related_entities = self.get_related_entities(question)
         
-        # Generate answer
         if similar_chunks:
-            # Simple answer generation from context
             context = " ".join(similar_chunks[:2])
             answer = f"Based on the medical documents: {context[:300]}..."
         else:
