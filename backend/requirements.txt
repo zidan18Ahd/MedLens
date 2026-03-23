@@ -1,29 +1,7 @@
-# Lightweight web framework
-fastapi==0.104.1
-uvicorn==0.24.0
-python-multipart==0.0.6
-
-# PDF processing (lightweight)
-pymupdf==1.23.8
-pdf2image==1.16.3
-
-# OCR (free alternative)
-pytesseract==0.3.10
-pillow==10.1.0
-
-# Vector embeddings (CPU-only, lightweight)
+streamlit==1.33.0
 sentence-transformers==2.2.2
-numpy==1.24.3
-
-# Graph database (lightweight)
-networkx==3.2.1
-
-# Web scraping
-beautifulsoup4==4.12.2
-requests==2.31.0
-
-# Async file operations
-aiofiles==23.2.1
-
-# Data validation
-pydantic==2.5.0
+torch==2.0.1
+scikit-learn==1.3.2
+networkx==3.1
+pypdf==4.2.0
+numpy==1.26.4
