@@ -158,11 +158,11 @@ class MedicalLightRAG:
         
         return related
     
- async def query(self, question: str, top_k: int = 5) -> Dict[str, Any]:
+async def query(self, question: str, top_k: int = 5) -> Dict[str, Any]:
     similar_chunks = self.search_similar(question, top_k)
     related_entities = self.get_related_entities(question)
     
-    # ── NEW: fuse graph neighbors into retrieval ──────────────────
+    # fuse graph neighbors into retrieval
     neighbor_names = [
         neighbor
         for entity in related_entities
@@ -181,18 +181,49 @@ class MedicalLightRAG:
         if chunk not in seen:
             seen.add(chunk)
             fused_chunks.append(chunk)
-    # ─────────────────────────────────────────────────────────────
     
     if fused_chunks:
-        context = " ".join(fused_chunks[:3])   # now using fused, not just vector
-        answer = f"Based on the medical documents: {context[:500]}..."
+        context = " ".join(fused_chunks[:3])
+        
+        # ── Mistral LLM call ──────────────────────────────────────
+        prompt = f"""You are a medical assistant.
+Using only the context below, answer the question clearly and concisely.
+Do not make up information not present in the context.
+
+Context: {context}
+
+Question: {question}
+
+Answer:"""
+
+        try:
+            import requests
+            response = requests.post(
+                "https://api.mistral.ai/v1/chat/completions",
+                headers={
+                    "Authorization": "Bearer YOUR_MISTRAL_API_KEY",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "mistral-small-latest",
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                    "max_tokens": 300
+                }
+            )
+            answer = response.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            answer = f"Based on the medical documents: {context[:500]}..."
+        # ──────────────────────────────────────────────────────────
+
     else:
         answer = "No relevant information found in the documents."
     
     return {
         "answer": answer,
         "relevant_chunks": similar_chunks,
-        "bonus_chunks_from_graph": bonus_chunks,   # visible in response now
+        "bonus_chunks_from_graph": bonus_chunks,
         "entities": related_entities,
-        "chunks_searched": len(fused_chunks)       # reflects true count
+        "chunks_searched": len(fused_chunks)
     }
