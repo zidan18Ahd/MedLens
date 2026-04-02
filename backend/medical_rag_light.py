@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from typing import List, Dict, Any
 import aiofiles
-from pypdf import PdfReader   # ✅ replaced PyMuPDF
+from pypdf import PdfReader 
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import networkx as nx
@@ -158,19 +158,41 @@ class MedicalLightRAG:
         
         return related
     
-    async def query(self, question: str, top_k: int = 5) -> Dict[str, Any]:
-        similar_chunks = self.search_similar(question, top_k)
-        related_entities = self.get_related_entities(question)
-        
-        if similar_chunks:
-            context = " ".join(similar_chunks[:2])
-            answer = f"Based on the medical documents: {context[:300]}..."
-        else:
-            answer = "No relevant information found in the documents."
-        
-        return {
-            "answer": answer,
-            "relevant_chunks": similar_chunks,
-            "entities": related_entities,
-            "chunks_searched": len(similar_chunks)
-        }
+ async def query(self, question: str, top_k: int = 5) -> Dict[str, Any]:
+    similar_chunks = self.search_similar(question, top_k)
+    related_entities = self.get_related_entities(question)
+    
+    # ── NEW: fuse graph neighbors into retrieval ──────────────────
+    neighbor_names = [
+        neighbor
+        for entity in related_entities
+        for neighbor in entity['neighbors']
+    ]
+    
+    bonus_chunks = [
+        chunk for chunk in self.chunks
+        if any(name.lower() in chunk.lower() for name in neighbor_names)
+    ]
+    
+    # merge, deduplicate, keep order
+    seen = set()
+    fused_chunks = []
+    for chunk in similar_chunks + bonus_chunks:
+        if chunk not in seen:
+            seen.add(chunk)
+            fused_chunks.append(chunk)
+    # ─────────────────────────────────────────────────────────────
+    
+    if fused_chunks:
+        context = " ".join(fused_chunks[:3])   # now using fused, not just vector
+        answer = f"Based on the medical documents: {context[:500]}..."
+    else:
+        answer = "No relevant information found in the documents."
+    
+    return {
+        "answer": answer,
+        "relevant_chunks": similar_chunks,
+        "bonus_chunks_from_graph": bonus_chunks,   # visible in response now
+        "entities": related_entities,
+        "chunks_searched": len(fused_chunks)       # reflects true count
+    }
